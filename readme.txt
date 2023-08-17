@@ -1,0 +1,1 @@
+This application has the function of reading files in xml format, in folders with the name "saidas" and "entradas", and returns them in xlsx format for checking in excel
