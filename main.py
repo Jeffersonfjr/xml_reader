@@ -57,6 +57,22 @@ def format_file(file):
     return file
 
 
+def custom_sum(special_sum):
+    filtered_group = special_sum[
+        (special_sum['CFOP'] >= '5100') & (special_sum['CFOP'] <= '5199') |
+        (special_sum['CFOP'] >= '6100') & (special_sum['CFOP'] <= '6199')
+    ]
+    return float(filtered_group['VALOR_TOTAL'].sum())
+
+
+def type_float(value):
+    selling = 0    
+    for i in value:
+        selling += i
+
+    return selling
+
+
 dscolumns_out = ['SERIE', 'Nº', 'DATA', 'CNPJ/CPF', 'NOME', 'CFOP', 'VALOR_TOTAL']
 dscolumns_in = ['Nº', 'DATA', 'CNPJ/CPF', 'NOME', 'CFOP', 'VALOR_TOTAL']
 dsvalue_out = []
@@ -77,5 +93,28 @@ dataset_in = pd.DataFrame(columns=dscolumns_in, data=dsvalue_in)
 dataset_out = format_file(dataset_out)
 dataset_in = format_file(dataset_in)
 
-dataset_out.to_excel('NotasFiscais_Saidas.xlsx', index=False, sheet_name='saidas')
-dataset_in.to_excel('NotasFiscais_Entradas.xlsx', index=False, sheet_name='entradas')
+
+writer = pd.ExcelWriter('NotasFiscais.xlsx', engine='xlsxwriter')
+
+df_cfop_out = dataset_out[['CFOP','VALOR_TOTAL']].groupby('CFOP').sum().reset_index()
+df_cfop_in = dataset_in[['CFOP', 'VALOR_TOTAL']].groupby('CFOP').sum().reset_index()
+df_serie_out = dataset_out[['SERIE','VALOR_TOTAL']].groupby('SERIE').sum().reset_index()
+
+selling = ['VENDA', type_float(df_cfop_out.groupby(['CFOP']).apply(custom_sum))]
+devolution = ['DEVOLUÇÃO', type_float(df_cfop_in.groupby(['CFOP']).apply(lambda x: x[x['CFOP'] == "1202"]['VALOR_TOTAL'].sum()))]
+total = selling[1] - devolution[1]
+
+totalization = [selling, devolution,['TOTAL',total]]
+
+verification = pd.DataFrame(columns=['','VALOR'], data=totalization)
+
+
+dataset_out.to_excel(writer, index=False, sheet_name='saidas')
+dataset_in.to_excel(writer, index=False, sheet_name='entradas')
+df_cfop_out.to_excel(writer, index=False, sheet_name='total',startcol=1)
+df_cfop_in.to_excel(writer, index=False, sheet_name='total', startcol=1, startrow= 10)
+df_serie_out.to_excel(writer, index=False, sheet_name='total',startcol=4)
+verification.to_excel(writer, index=False, sheet_name='total',startcol=4, startrow= 5)
+
+
+writer.close()
