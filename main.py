@@ -33,11 +33,11 @@ def take_file_in (file):
         data = dict_xml['nfeProc']['NFe']['infNFe']['ide']['dhEmi']
 
         if 'CPF' in dict_xml['nfeProc']['NFe']['infNFe']['dest']:
-            cod = dict_xml['nfeProc']['NFe']['infNFe']['dest']['CPF']
+            cod = dict_xml['nfeProc']['NFe']['infNFe']['emit']['CPF']
         else:
-            cod = dict_xml['nfeProc']['NFe']['infNFe']['dest']['CNPJ']
+            cod = dict_xml['nfeProc']['NFe']['infNFe']['emit']['CNPJ']
 
-        nome =  dict_xml['nfeProc']['NFe']['infNFe']['dest']['xNome']
+        nome =  dict_xml['nfeProc']['NFe']['infNFe']['emit']['xNome']
         if 'prod' in dict_xml['nfeProc']['NFe']['infNFe']['det']:
             cfop = dict_xml['nfeProc']['NFe']['infNFe']['det']['prod']['CFOP']
         else:
@@ -48,11 +48,12 @@ def take_file_in (file):
 
 
 def format_file(file):
+    file = file.reset_index(drop=True)
     if 'SERIE' in file:
         file['SERIE'] = file['SERIE'].astype(float)
     file['Nº'] = file['Nº'].astype(int)
-    file['DATA'] = pd.to_datetime(file['DATA'])
-    file['DATA'] = file['DATA'].dt.date
+    file['DATA'] = pd.DatetimeIndex(pd.to_datetime(file['DATA'],utc=True)).tz_localize(None,)
+    file['DATA'] = file['DATA'].dt.strftime('%d/%m/%Y')
     file['VALOR_TOTAL'] = file['VALOR_TOTAL'].astype(float)
     return file
 
